@@ -24,8 +24,8 @@ include(cmake/CPM.cmake)
 # This will automatically clone MatX from GitHub and make the exported cmake targets available
 CPMAddPackage(
   NAME MatX
-  GITHUB_REPOSITORY "nvidia/MatX"
-  GIT_TAG "main"
+  GITHUB_REPOSITORY "sidelnik/MatX"
+  GIT_TAG cudastf
 )
 
 # Default to building for the GPU on the current system
