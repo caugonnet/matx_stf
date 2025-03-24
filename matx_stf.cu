@@ -63,6 +63,10 @@ int main(int argc, char **argv) {
 
     hello(a).run(exec);
     hello(b).run(exec);
+
+    auto c = matx::make_tensor<float>({10});
+    (c = a + b).run(exec);
+
     exec.sync();
 
     printf("You should see the 10 odd values printed\n");
