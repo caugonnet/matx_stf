@@ -32,10 +32,42 @@
 #include <stdio.h>
 #include <matx.h>
 
+template <class I1>
+class hello : public matx::BaseOp<hello<I1>> {
+private:
+  I1 T_;
+
+public:
+  hello(I1 T)
+      : T_(T) {}
+
+  __device__ inline void operator()(matx::index_t idx)
+  {
+    T_(idx) = 2*idx + 1;
+  }
+
+  __host__ __device__ inline matx::index_t Size(uint32_t i) const  { return T_.Size(i); }
+  static inline constexpr __host__ __device__ int32_t Rank() { return I1::Rank(); }
+};
+
 int main(int argc, char **argv) {
     auto a = matx::make_tensor<float>({10});
     a.SetVals({1,2,3,4,5,6,7,8,9,10});
 
+    auto b = a;
+
     printf("You should see the values 1-10 printed\n");
     matx::print(a);
+
+    matx::stfExecutor exec{};
+
+    hello(a).run(exec);
+    hello(b).run(exec);
+    exec.sync();
+
+    printf("You should see the 10 odd values printed\n");
+    matx::print(a);
+
+    printf("You should see the 10 odd values printed\n");
+    matx::print(b);
 }
