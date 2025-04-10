@@ -50,6 +50,64 @@ public:
   static inline constexpr __host__ __device__ int32_t Rank() { return I1::Rank(); }
 };
 
+template <typename derived>
+class StfBaseOp : public matx::BaseOp<derived> {
+public:
+  template <typename tensor_t, typename ...OtherArgs>
+  void add_deps(const tensor_t &t, cuda::experimental::stf::access_mode m, OtherArgs... other)
+  {
+      // TODO
+  }
+
+  template <typename Task>
+  __MATX_INLINE__ void apply_dep_to_task(Task &&task, int perm=1) const noexcept {
+    fprintf(stderr, "apply_dep_to_task StfBaseOp.\n");
+     derived::apply_dep_to_task(std::forward<Task>(task), perm);
+  }
+
+
+
+  // Forward the size call to the derived class.
+  __host__ __device__ inline matx::index_t size(uint32_t i) const
+  {
+    return static_cast<const derived*>(this)->size(i);
+  }
+
+  // Forward the rank call to the derived class.
+  static inline constexpr __host__ __device__ int32_t rank()
+  {
+    return derived::rank();
+  }
+};
+
+template <class I1>
+class stf_hello : public StfBaseOp<stf_hello<I1>> {
+private:
+  I1 T_;
+
+public:
+  stf_hello(I1 T)
+      : T_(T) {
+     this->add_deps(T_, cuda::experimental::stf::access_mode::write);
+  }
+
+  template <typename Task>
+  __MATX_INLINE__ void apply_dep_to_task(Task &&task, int perm=1) const noexcept {
+    fprintf(stderr, "apply_dep_to_task stf_hello.\n");
+    T_.apply_dep_to_task(std::forward<Task>(task), 1);
+  }
+
+  __device__ inline void operator()(matx::index_t idx)
+  {
+    T_(idx) = 2*idx + 1;
+  }
+
+  __host__ __device__ inline matx::index_t Size(uint32_t i) const  { return T_.Size(i); }
+  static inline constexpr __host__ __device__ int32_t Rank() { return I1::Rank(); }
+};
+
+
+
 int main(int argc, char **argv) {
     auto a = matx::make_tensor<float>({10});
     a.SetVals({1,2,3,4,5,6,7,8,9,10});
@@ -61,8 +119,8 @@ int main(int argc, char **argv) {
 
     matx::stfExecutor exec{};
 
-    hello(a).run(exec);
-    hello(b).run(exec);
+    stf_hello(a).run(exec);
+    stf_hello(b).run(exec);
 
     auto c = matx::make_tensor<float>({10});
     (c = a + b).run(exec);
